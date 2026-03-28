@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ur" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>قلم — Blogging Platform</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ══════════════════════════════════
+       HEADER
+  ══════════════════════════════════ -->
+  <header>
+    <div class="header-inner">
+      <a class="logo" onclick="showPage('home')" href="#">
+        قلم
+        <span>QALAM</span>
+      </a>
+      <div class="header-actions">
+        <div class="search-bar">
+          <span style="color:var(--muted);font-size:0.9rem">⌕</span>
+          <input
+            type="text"
+            id="searchInput"
+            placeholder="Posts dhundhein..."
+            oninput="filterPosts()"
+          >
+        </div>
+        <button class="btn btn-primary" onclick="showPage('editor', null)">
+          + Naya Post
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ══════════════════════════════════
+       HOME PAGE
+  ══════════════════════════════════ -->
+  <div id="page-home" class="page active">
+
+    <!-- Hero Section -->
+    <div class="hero">
+      <div class="hero-text">
+        <h1>Apne <em>alfaaz</em><br>duniya se<br>share karein</h1>
+        <p>Aik khoobsurat jagah apne khayal, kahaniyan, aur tajurbaat likhne ke liye.</p>
+        <button
+          class="btn btn-primary"
+          onclick="showPage('editor', null)"
+          style="font-size:1.1rem; padding: 0.7rem 2rem;"
+        >
+          Likhna Shuru Karein →
+        </button>
+        <div class="hero-stats">
+          <div class="stat-item">
+            <span class="stat-num" id="stat-posts">0</span>
+            <span class="stat-label">Posts</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-num" id="stat-words">0</span>
+            <span class="stat-label">Alfaaz</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-num" id="stat-cats">0</span>
+            <span class="stat-label">Categories</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Featured Post (JS se render hoga) -->
+      <div id="featuredPost"></div>
+    </div>
+
+    <!-- All Posts Grid -->
+    <div class="posts-section">
+      <div class="section-header">
+        <h2 class="section-title">Tamam Posts</h2>
+        <span
+          id="postCount"
+          style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--muted)"
+        ></span>
+      </div>
+      <div class="posts-grid" id="postsGrid">
+        <!-- JS se render hoga -->
+      </div>
+    </div>
+
+  </div><!-- /page-home -->
+
+  <!-- ══════════════════════════════════
+       EDITOR PAGE
+  ══════════════════════════════════ -->
+  <div id="page-editor" class="page">
+    <div class="editor-wrapper">
+
+      <div class="editor-topbar">
+        <h2 id="editorTitle">Naya Post Likhein</h2>
+        <div class="editor-actions">
+          <button class="btn btn-ghost" onclick="showPage('home')">← Wapas</button>
+          <button class="btn" onclick="savePost('draft')">Draft Save</button>
+          <button class="btn btn-primary" onclick="savePost('published')">Publish ✓</button>
+        </div>
+      </div>
+
+      <input
+        type="text"
+        class="title-input"
+        id="postTitle"
+        placeholder="Apne post ka title likhein…"
+      >
+
+      <div class="editor-fields">
+        <div class="field-group">
+          <label>Category</label>
+          <select id="postCategory">
+            <option value="Adab">ادب — Adab</option>
+            <option value="Safarnama">سفرنامہ — Safarnama</option>
+            <option value="Tech">ٹیک — Tech</option>
+            <option value="Zindagi">زندگی — Zindagi</option>
+            <option value="Siyasat">سیاست — Siyasat</option>
+            <option value="Khana">کھانا — Khana</option>
+            <option value="Mutfarriq">متفرق — Mutfarriq</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label>Excerpt (mukhtasir taaruf)</label>
+          <input type="text" id="postExcerpt" placeholder="Mukhtasir khulasa…">
+        </div>
+      </div>
+
+      <!-- Formatting Toolbar -->
+      <div class="toolbar">
+        <button class="toolbar-btn" onclick="fmt('bold')"              title="Bold"><strong>B</strong></button>
+        <button class="toolbar-btn" onclick="fmt('italic')"            title="Italic"><em>I</em></button>
+        <button class="toolbar-btn" onclick="fmt('underline')"         title="Underline"><u>U</u></button>
+        <div class="toolbar-sep"></div>
+        <button class="toolbar-btn" onclick="fmtBlock('h2')"           title="Heading">H2</button>
+        <button class="toolbar-btn" onclick="fmtBlock('h3')"           title="Sub-heading">H3</button>
+        <div class="toolbar-sep"></div>
+        <button class="toolbar-btn" onclick="fmt('insertUnorderedList')" title="List">• List</button>
+        <button class="toolbar-btn" onclick="fmt('insertOrderedList')"   title="Numbered">1. List</button>
+        <div class="toolbar-sep"></div>
+        <button class="toolbar-btn" onclick="fmtBlock('blockquote')"   title="Quote">❝</button>
+        <div class="toolbar-sep"></div>
+        <button class="toolbar-btn" onclick="fmt('removeFormat')"      title="Clear">✕ Format</button>
+      </div>
+
+      <div
+        class="editor-body"
+        id="editorBody"
+        contenteditable="true"
+        oninput="updateWordCount()"
+      ></div>
+
+      <div class="word-count"><span id="wordCount">0</span> alfaaz</div>
+
+    </div>
+  </div><!-- /page-editor -->
+
+  <!-- ══════════════════════════════════
+       POST VIEW PAGE
+  ══════════════════════════════════ -->
+  <div id="page-post" class="page">
+    <div class="post-view">
+
+      <div class="post-view-header">
+        <div class="post-view-category" id="viewCategory"></div>
+        <h1 id="viewTitle"></h1>
+        <div class="post-view-meta">
+          <span id="viewDate"></span>
+          <div class="post-view-actions">
+            <button class="btn" onclick="editCurrentPost()">✎ Edit</button>
+            <button class="btn btn-danger" onclick="deleteCurrentPost()">✕ Delete</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="ornament">— ✦ —</div>
+
+      <div class="post-view-body" id="viewBody"></div>
+
+      <div style="margin-top:3rem; padding-top:1.5rem; border-top:1px solid var(--border); text-align:center;">
+        <button class="btn" onclick="showPage('home')" style="margin-right:0.5rem">← Tamam Posts</button>
+        <button class="btn btn-primary" onclick="showPage('editor', null)">+ Naya Post</button>
+      </div>
+
+    </div>
+  </div><!-- /page-post -->
+
+  <!-- Toast Notification -->
+  <div class="toast" id="toast"></div>
+
+  <!-- JavaScript -->
+  <script src="script.js"></script>
+
+</body>
+</html>
