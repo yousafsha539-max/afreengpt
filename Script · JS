@@ -1,0 +1,289 @@
+/* ══════════════════════════════════════
+   قلم — QALAM BLOGGING PLATFORM
+   script.js
+══════════════════════════════════════ */
+
+// ── DATA STORE ──
+let posts = JSON.parse(localStorage.getItem('qalam_posts') || '[]');
+let currentEditId = null;
+let currentViewId = null;
+
+// Sample posts agar localStorage khali ho
+if (posts.length === 0) {
+  posts = [
+    {
+      id: Date.now() - 200000,
+      title: "Lahore ki Subah",
+      category: "Safarnama",
+      excerpt: "Badshahi Masjid ke saamne baithe subah ki chai peene ka mazaa hi alag hai.",
+      body: "<p>Lahore ki subah ek alag hi rang rakhti hai. Jab suraj abhi nikalaa hi hota hai, aur budhey darakhton ki chhaya mein thandi hawa chalti hai, toh insaan ko lagta hai ke yahi zindagi hai.</p><p>Badshahi Masjid ke saamne wali chai ki dukaan par, ek buddha chaiwala apni bhatti jalata hai. Uski chai mein doodh zyada hota hai aur cheeni kam — bilkul Punjab ki fitrat ki tarah. Kuch log wahan baithe akhbaar parh rahe hain, kuch dost baatein kar rahe hain.</p><p>Is shehar mein har cheez mein aik kahani hai. Deewaaron par likhi ibaratein, bazaaron ki awazein, aur logon ke chehre — sab kuch miltaa hai toh Lahore banta hai.</p>",
+      status: "published",
+      date: new Date(Date.now() - 200000).toLocaleDateString('ur-PK'),
+      wordCount: 112
+    },
+    {
+      id: Date.now() - 100000,
+      title: "Coding Seekhne Ka Safar",
+      category: "Tech",
+      excerpt: "Jab maine pehli baar 'Hello World' print kiya, toh ek naye duniya ke darwaaze khule.",
+      body: "<p>Teen saal pehle, maine pehli baar ek programming tutorial khola. Screen par thaa: <em>print('Hello, World!')</em>. Maine woh likha, enter dabaya, aur ek line print hui. Bas itni si cheez ne meri zindagi badal di.</p><p>Coding seekhna aik mushkil safar hai. Ghantoon tak ek error ko dhundna, phir uss ek line ki wajah pata chalna — yeh feeling kisi bhi mushkil ki qadar badhaa deti hai.</p><p>Meri advice: Rukna mat. Har programmer ki life mein woh waqt aata hai jab sab kuch impossible lagta hai. Lekin uss deewar ko todna — wahi asli kamyabi hai.</p>",
+      status: "published",
+      date: new Date(Date.now() - 100000).toLocaleDateString('ur-PK'),
+      wordCount: 98
+    }
+  ];
+  savePosts();
+}
+
+/* ──────────────────────────────────────
+   STORAGE
+────────────────────────────────────── */
+function savePosts() {
+  localStorage.setItem('qalam_posts', JSON.stringify(posts));
+}
+
+/* ──────────────────────────────────────
+   PAGE NAVIGATION
+────────────────────────────────────── */
+function showPage(name, id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  window.scrollTo(0, 0);
+
+  if (name === 'home') {
+    document.getElementById('searchInput').value = '';
+    renderHome();
+  } else if (name === 'editor') {
+    setupEditor(id);
+  } else if (name === 'post' && id !== undefined) {
+    renderPost(id);
+  }
+}
+
+/* ──────────────────────────────────────
+   HOME PAGE
+────────────────────────────────────── */
+function renderHome() {
+  const published = posts.filter(p => p.status === 'published');
+
+  // Stats update karo
+  document.getElementById('stat-posts').textContent = posts.length;
+
+  const totalWords = posts.reduce((sum, p) => sum + (p.wordCount || 0), 0);
+  document.getElementById('stat-words').textContent =
+    totalWords > 999 ? (totalWords / 1000).toFixed(1) + 'k' : totalWords;
+
+  const cats = [...new Set(posts.map(p => p.category))];
+  document.getElementById('stat-cats').textContent = cats.length;
+
+  // Featured post render karo
+  const featuredEl = document.getElementById('featuredPost');
+  if (published.length > 0) {
+    const f = published[0];
+    featuredEl.innerHTML = `
+      <div class="featured-post" onclick="showPage('post', ${f.id})">
+        <div class="post-category">${f.category}</div>
+        <h2>${f.title}</h2>
+        <p>${f.excerpt || stripHtml(f.body).substring(0, 150) + '…'}</p>
+        <div class="post-meta">
+          <span>${f.date}</span>
+          <span>${f.wordCount || 0} alfaaz</span>
+        </div>
+      </div>`;
+  } else {
+    featuredEl.innerHTML = `
+      <div style="border:2px dashed var(--border);padding:3rem 2rem;text-align:center;color:var(--muted)">
+        <div style="font-size:3rem;margin-bottom:1rem;opacity:0.3">✦</div>
+        <p>Apna pehla post likhein!</p>
+      </div>`;
+  }
+
+  renderGrid(posts);
+}
+
+function renderGrid(list) {
+  const grid = document.getElementById('postsGrid');
+  document.getElementById('postCount').textContent =
+    list.length + ' post' + (list.length !== 1 ? 's' : '');
+
+  if (list.length === 0) {
+    grid.innerHTML = `
+      <div class="empty-state">
+        <span class="big-icon">✦</span>
+        <h3>Koi post nahi mila</h3>
+        <p>Naya post likhein ya search badlein.</p>
+      </div>`;
+    return;
+  }
+
+  grid.innerHTML = list.map(p => `
+    <div class="post-card" onclick="showPage('post', ${p.id})">
+      <div class="post-category">
+        ${p.category}
+        ${p.status === 'draft' ? '· <span style="color:var(--gold)">Draft</span>' : ''}
+      </div>
+      <h3>${p.title}</h3>
+      <p>${p.excerpt || stripHtml(p.body).substring(0, 100) + '…'}</p>
+      <div class="post-meta">
+        <span>${p.date}</span>
+        <span>${p.wordCount || 0} alfaaz</span>
+      </div>
+    </div>`).join('');
+}
+
+function filterPosts() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  const filtered = posts.filter(p =>
+    p.title.toLowerCase().includes(q) ||
+    p.category.toLowerCase().includes(q) ||
+    (p.excerpt || '').toLowerCase().includes(q)
+  );
+  renderGrid(filtered);
+}
+
+/* ──────────────────────────────────────
+   EDITOR
+────────────────────────────────────── */
+function setupEditor(id) {
+  currentEditId = id;
+  const titleEl    = document.getElementById('editorTitle');
+  const bodyEl     = document.getElementById('editorBody');
+  const titleInput = document.getElementById('postTitle');
+
+  if (id !== null) {
+    const post = posts.find(p => p.id === id);
+    if (post) {
+      titleEl.textContent = 'Post Edit Karein';
+      titleInput.value = post.title;
+      document.getElementById('postCategory').value = post.category;
+      document.getElementById('postExcerpt').value  = post.excerpt || '';
+      bodyEl.innerHTML = post.body;
+      updateWordCount();
+    }
+  } else {
+    titleEl.textContent = 'Naya Post Likhein';
+    titleInput.value = '';
+    document.getElementById('postCategory').value = 'Adab';
+    document.getElementById('postExcerpt').value  = '';
+    bodyEl.innerHTML = '';
+    updateWordCount();
+  }
+}
+
+function savePost(status) {
+  const title = document.getElementById('postTitle').value.trim();
+  const body  = document.getElementById('editorBody').innerHTML.trim();
+
+  if (!title) { showToast('Title zaroor likhein!'); return; }
+  if (!body)  { showToast('Post ka content likhein!'); return; }
+
+  const words = countWords(document.getElementById('editorBody').innerText || '');
+
+  if (currentEditId !== null) {
+    const idx = posts.findIndex(p => p.id === currentEditId);
+    if (idx > -1) {
+      posts[idx] = {
+        ...posts[idx],
+        title,
+        category:  document.getElementById('postCategory').value,
+        excerpt:   document.getElementById('postExcerpt').value,
+        body,
+        status,
+        wordCount: words,
+        date:      new Date().toLocaleDateString('ur-PK')
+      };
+    }
+  } else {
+    posts.unshift({
+      id:        Date.now(),
+      title,
+      category:  document.getElementById('postCategory').value,
+      excerpt:   document.getElementById('postExcerpt').value,
+      body,
+      status,
+      wordCount: words,
+      date:      new Date().toLocaleDateString('ur-PK')
+    });
+  }
+
+  savePosts();
+  showToast(status === 'published' ? '✓ Post publish ho gaya!' : '✓ Draft save ho gaya!');
+  setTimeout(() => showPage('home'), 700);
+}
+
+/* ──────────────────────────────────────
+   POST VIEW
+────────────────────────────────────── */
+function renderPost(id) {
+  currentViewId = id;
+  const post = posts.find(p => p.id === id);
+  if (!post) { showPage('home'); return; }
+
+  document.getElementById('viewCategory').textContent =
+    post.category + (post.status === 'draft' ? ' · DRAFT' : '');
+  document.getElementById('viewTitle').textContent = post.title;
+  document.getElementById('viewDate').textContent  =
+    post.date + ' · ' + (post.wordCount || 0) + ' alfaaz';
+  document.getElementById('viewBody').innerHTML = post.body;
+}
+
+function editCurrentPost() {
+  showPage('editor', currentViewId);
+}
+
+function deleteCurrentPost() {
+  if (!confirm('Kya aap yeh post delete karna chahte hain?')) return;
+  posts = posts.filter(p => p.id !== currentViewId);
+  savePosts();
+  showToast('Post delete ho gaya.');
+  showPage('home');
+}
+
+/* ──────────────────────────────────────
+   TEXT FORMATTING
+────────────────────────────────────── */
+function fmt(cmd) {
+  document.getElementById('editorBody').focus();
+  document.execCommand(cmd, false, null);
+}
+
+function fmtBlock(tag) {
+  document.getElementById('editorBody').focus();
+  document.execCommand('formatBlock', false, tag);
+}
+
+/* ──────────────────────────────────────
+   WORD COUNT
+────────────────────────────────────── */
+function updateWordCount() {
+  const text  = document.getElementById('editorBody').innerText || '';
+  const count = countWords(text);
+  document.getElementById('wordCount').textContent = count;
+}
+
+function countWords(text) {
+  return text.trim().split(/\s+/).filter(w => w.length > 0).length;
+}
+
+/* ──────────────────────────────────────
+   UTILITIES
+────────────────────────────────────── */
+function stripHtml(html) {
+  const div = document.createElement('div');
+  div.innerHTML = html;
+  return div.textContent || div.innerText || '';
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+/* ──────────────────────────────────────
+   INIT
+────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', () => {
+  renderHome();
+});
